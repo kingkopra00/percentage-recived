@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الصيدلة - V14 (النهائي)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root { --primary: #1565c0; --bg: #f0f4f8; --accent: #1976d2; --success: #2e7d32; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); margin: 0; padding: 5px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 15px; border-radius: 10px; min-height: 90vh; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        
+        /* Tabs Navigation */
+        .nav-tabs { display: flex; gap: 8px; margin-bottom: 20px; background: #e3f2fd; padding: 5px; border-radius: 8px; }
+        .nav-item { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; border-radius: 6px; transition: 0.2s; color: #555; }
+        .nav-item.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        .section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .section.active { display: block; }
+
+        /* Inputs & Forms */
+        .form-group { margin-bottom: 18px; position: relative; }
+        label { display: block; font-weight: bold; margin-bottom: 6px; color: #444; }
+        input, select { width: 100%; padding: 14px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: 0.2s; background: #fafafa; }
+        input:focus, select:focus { border-color: var(--primary); outline: none; background: white; }
+        select:disabled { background: #eee; color: #aaa; cursor: not-allowed; }
+
+        /* Buttons */
+        button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; margin-top: 8px; font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s; }
+        button:active { transform: scale(0.98); }
+        .btn-import { background-color: var(--primary); }
+        .btn-save { background-color: var(--success); }
+        .btn-report { background-color: #7b1fa2; }
+        .btn-backup { background-color: #f57c00; }
+        .btn-reset { background-color: #c62828; margin-top: 25px; font-size: 14px; opacity: 0.8; }
+        
+        /* Clear Button inside input */
+        .clear-btn { position: absolute; left: 10px; top: 42px; color: #999; cursor: pointer; font-size: 18px; display: none; }
+        
+        /* Console & Balance */
+        .debug-console { background: #263238; color: #80cbc4; padding: 12px; height: 80px; overflow-y: auto; font-size: 12px; margin-top: 20px; direction: ltr; text-align: left; border-radius: 6px; font-family: monospace; }
+        .balance-box { padding: 20px; background: #e8f5e9; border: 1px solid #c8e6c9; text-align: center; display: none; border-radius: 8px; margin-bottom: 15px; }
+        .balance-num { font-size: 2em; font-weight: bold; color: var(--success); display: block; }
+
+        /* Suggestions */
+        .suggestions-list { border: 1px solid #ddd; max-height: 220px; overflow-y: auto; display: none; position: absolute; background: white; width: 100%; z-index: 100; box-shadow: 0 8px 16px rgba(0,0,0,0.15); border-radius: 0 0 8px 8px; }
+        .suggestion-item { padding: 14px; border-bottom: 1px solid #f1f1f1; cursor: pointer; }
+        .suggestion-item:hover { background: #e3f2fd; color: var(--primary); font-weight: bold; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem; background: white; }
+        th, td { padding: 12px; border: 1px solid #eee; text-align: center; }
+        th { background: var(--primary); color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h3 style="text-align:center; margin:10px 0 20px 0; color:var(--primary)">🏥 نظام إدارة الصيدلة المركزي</h3>
+
+    <div class="nav-tabs">
+        <div id="tab-import" class="nav-item active" onclick="switchTab('import')">📂 الملفات</div>
+        <div id="tab-dispense" class="nav-item" onclick="switchTab('dispense')">💊 صرف المواد</div>
+        <div id="tab-report" class="nav-item" onclick="switchTab('report')">📊 التقارير</div>
+    </div>
+
+    <div id="import" class="section active">
+        <div style="background:#e3f2fd; padding:25px; border-radius:10px; text-align:center; border: 1px dashed var(--primary);">
+            <h4 style="margin-top:0; color:var(--primary)">استيراد البيانات</h4>
+            <p style="color:#555; font-size:0.9rem; margin-bottom:15px;">يمكنك رفع ملف Excel جديد للتأسيس، أو ملف JSON لاسترجاع نسخة احتياطية.</p>
+            
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .json" style="display:block; margin:0 auto 15px auto;">
+            <button class="btn-import" onclick="processFile()">🚀 معالجة الملف</button>
+        </div>
+
+        <div class="debug-console" id="logsContent">> System Ready... Waiting for file.</div>
+        <button class="btn-reset" onclick="clearSystem()">⚠️ تهيئة النظام وحذف كافة البيانات (Format)</button>
+    </div>
+
+    <div id="dispense" class="section">
+        <div style="background:#fff3e0; padding:12px; border-radius:6px; margin-bottom:20px; font-size:0.9rem; color:#e65100; text-align:center; border:1px solid #ffe0b2;">
+            💡 <b>طريقة العمل:</b> ابحث عن الدواء أولاً، وسيظهر لك النظام المؤسسات التي تملك رصيداً فقط.
+        </div>
+
+        <div class="form-group">
+            <label>1. اسم المادة (اكتب 3 أحرف للبحث):</label>
+            <input type="text" id="dispenseSearch" onkeyup="handleSearch(this.value, 'dispense')" placeholder="مثلاً: Paracetamol..." autocomplete="off">
+            <span class="clear-btn" onclick="clearSearch('dispense')" id="clearDispense">✖</span>
+            <div class="suggestions-list" id="dispenseList"></div>
+            <input type="hidden" id="dispenseItemHidden">
+        </div>
+
+        <div class="form-group">
+            <label>2. المؤسسة المستفيدة:</label>
+            <select id="dispenseInst" onchange="checkDispenseBal()" disabled>
+                <option value="">-- يرجى اختيار المادة أولاً --</option>
+            </select>
+        </div>
+
+        <div id="balBox" class="balance-box">
+            الرصيد الحالي: <span id="balNum" class="balance-num">0</span>
+        </div>
+
+        <div class="form-group">
+            <label>3. الكمية المصروفة:</label>
+            <input type="number" id="qtyInput" placeholder="العدد">
+        </div>
+        <button class="btn-save" onclick="doDispense()">✅ حفظ وتثبيت الصرف</button>
+    </div>
+
+    <div id="report" class="section">
+        <div style="background: #f3e5f5; padding: 20px; border-radius: 10px; border:1px solid #e1bee7;">
+            <label style="color:#7b1fa2">🔍 استعلام تفصيلي:</label>
+            <div class="form-group" style="margin-bottom:0;">
+                <input type="text" id="reportSearch" onkeyup="handleSearch(this.value, 'report')" placeholder="ابحث عن اسم دواء لعرض جدول التوزيع..." autocomplete="off">
+                <span class="clear-btn" onclick="clearSearch('report')" id="clearReport">✖</span>
+                <div class="suggestions-list" id="reportList"></div>
+                <input type="hidden" id="reportItemHidden">
+            </div>
+            <button class="btn-report" onclick="generateReport()">عرض الجدول</button>
+        </div>
+        
+        <div style="overflow-x:auto; margin-top:10px;">
+            <table id="reportTable">
+                <thead><tr><th>المؤسسة</th><th>المادة</th><th>الاحتياج</th><th>المصروف</th><th>المتبقي</th></tr></thead>
+                <tbody id="reportBody">
+                    <tr><td colspan="5" style="padding:25px; color:#aaa;">النتائج ستظهر هنا بعد البحث</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <hr style="margin: 25px 0; border: 0; border-top: 1px solid #eee;">
+        <button class="btn-backup" onclick="exportBackup()">💾 حفظ نسخة احتياطية (Backup)</button>
+    </div>
+</div>
+
+<script>
+    // --- CORE UTILS ---
+    function log(msg) {
+        const box = document.getElementById('logsContent');
+        box.innerHTML += `<div>> ${msg}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+
+    let db = [];
+    let uniqueItems = [];
+
+    window.onload = function() {
+        if (typeof XLSX === 'undefined') log("Loading SheetJS library...");
+        loadDB();
+    };
+
+    function switchTab(id) {
+        // Toggle Tabs
+        document.querySelectorAll('.section').forEach(d => d.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(d => d.classList.remove('active'));
+        
+        document.getElementById(id).classList.add('active');
+        const btn = document.getElementById('tab-' + id);
+        if(btn) btn.classList.add('active');
+    }
+
+    // --- FILE HANDLER (Unified) ---
+    function processFile() {
+        const f = document.getElementById('fileInput').files[0];
+        if(!f) return log("الرجاء اختيار ملف أولاً.");
+        
+        const fileName = f.name.toLowerCase();
+
+        // A) RESTORE BACKUP (JSON)
+        if(fileName.endsWith('.json')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(Array.isArray(data)) {
+                        db = data;
+                        saveDB();
+                        log(`Restored ${db.length} records from JSON.`);
+                        alert(`✅ تم استرجاع النسخة الاحتياطية بنجاح.\nعدد السجلات: ${db.length}\nسيتم تحويلك لصفحة الصرف.`);
+                        switchTab('dispense');
+                    } else {
+                        alert("ملف تالف أو غير صحيح!");
+                    }
+                } catch(err) { log("Error: " + err); }
+            };
+            reader.readAsText(f);
+            return;
+        }
+
+        // B) IMPORT EXCEL (XLSX)
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
+                parseExcelRows(rows);
+            } catch(err) { log("Excel Error: " + err); }
+        };
+        reader.readAsArrayBuffer(f);
+    }
+
+    function parseExcelRows(rows) {
+        let headerIdx = -1;
+        let instCols = [];
+
+        // Find Header
+        for(let i=0; i<Math.min(rows.length, 50); i++) {
+            const str = JSON.stringify(rows[i]);
+            if(str.includes("مستشفى") || str.includes("قطاع")) {
+                headerIdx = i;
+                rows[i].forEach((cell, idx) => {
+                    if(typeof cell === 'string' && (cell.includes("مستشفى") || cell.includes("قطاع") || cell.includes("مركز"))) {
+                        instCols.push({name: cell.trim(), idx: idx});
+                    }
+                });
+                break;
+            }
+        }
+
+        if(headerIdx === -1) return log("لم يتم العثور على سطر العناوين (مستشفى/قطاع)!");
+
+        let count = 0;
+        // Start Parsing
+        for(let i=headerIdx+1; i<rows.length; i++) {
+            const row = rows[i];
+            if(!row || !row[0]) continue;
+            
+            const item = String(row[0]).trim();
+            if(item.length < 2 || item.includes("SYSTEM")) continue;
+
+            instCols.forEach(inst => {
+                let val = row[inst.idx];
+                let quota = typeof val === 'number' ? val : parseInt(String(val).replace(/[^0-9]/g, '')) || 0;
+                
+                if(quota > 0) {
+                    let exists = db.find(x => x.inst === inst.name && x.item === item);
+                    if(exists) exists.quota = quota;
+                    else {
+                        db.push({inst: inst.name, item: item, quota: quota, used: 0});
+                        count++;
+                    }
+                }
+            });
+        }
+        
+        saveDB();
+        log(`Imported ${count} records.`);
+        alert(`✅ تم استيراد ${count} سجل جديد.\nسيتم تحويلك لصفحة الصرف.`);
+        switchTab('dispense');
+    }
+
+    // --- SEARCH & FILTER ---
+    function handleSearch(txt, type) {
+        const listId = type === 'dispense' ? 'dispenseList' : 'reportList';
+        const clearBtnId = type === 'dispense' ? 'clearDispense' : 'clearReport';
+        
+        const list = document.getElementById(listId);
+        document.getElementById(clearBtnId).style.display = txt.length > 0 ? 'block' : 'none';
+
+        if(txt.length < 3) { list.style.display = 'none'; return; }
+
+        const matches = uniqueItems.filter(i => i.toLowerCase().includes(txt.toLowerCase())).slice(0, 20);
+        
+        list.innerHTML = '';
+        if(matches.length > 0) {
+            list.style.display = 'block';
+            matches.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerText = m;
+                div.onclick = () => selectItem(m, type);
+                list.appendChild(div);
+            });
+        } else { list.style.display = 'none'; }
+    }
+
+    function selectItem(name, type) {
+        if(type === 'dispense') {
+            document.getElementById('dispenseSearch').value = name;
+            document.getElementById('dispenseItemHidden').value = name;
+            document.getElementById('dispenseList').style.display = 'none';
+            filterInstitutionsByItem(name);
+        } else {
+            document.getElementById('reportSearch').value = name;
+            document.getElementById('reportItemHidden').value = name;
+            document.getElementById('reportList').style.display = 'none';
+        }
+    }
+
+    function clearSearch(type) {
+        if(type === 'dispense') {
+            document.getElementById('dispenseSearch').value = '';
+            document.getElementById('dispenseItemHidden').value = '';
+            document.getElementById('dispenseList').style.display = 'none';
+            document.getElementById('clearDispense').style.display = 'none';
+            document.getElementById('dispenseInst').innerHTML = '<option>-- يرجى اختيار المادة --</option>';
+            document.getElementById('dispenseInst').disabled = true;
+            document.getElementById('balBox').style.display = 'none';
+        } else {
+            document.getElementById('reportSearch').value = '';
+            document.getElementById('reportItemHidden').value = '';
+            document.getElementById('reportList').style.display = 'none';
+            document.getElementById('clearReport').style.display = 'none';
+        }
+    }
+
+    function filterInstitutionsByItem(itemName) {
+        const instSelect = document.getElementById('dispenseInst');
+        instSelect.disabled = false;
+        document.getElementById('balBox').style.display = 'none';
+
+        const validRecords = db.filter(r => r.item === itemName);
+        instSelect.innerHTML = '<option value="">-- اختر المؤسسة --</option>';
+        
+        if(validRecords.length === 0) {
+            instSelect.innerHTML = '<option value="">🚫 لا يوجد حصة لهذه المادة</option>';
+            instSelect.disabled = true;
+            return;
+        }
+        
+        validRecords.sort((a, b) => a.inst.localeCompare(b.inst));
+        validRecords.forEach(rec => instSelect.add(new Option(rec.inst, rec.inst)));
+    }
+
+    // --- DISPENSE ---
+    function checkDispenseBal() {
+        const inst = document.getElementById('dispenseInst').value;
+        const item = document.getElementById('dispenseItemHidden').value;
+        const box = document.getElementById('balBox');
+        
+        if(!inst) { box.style.display = 'none'; return; }
+
+        const rec = db.find(x => x.inst === inst && x.item === item);
+        if(rec) {
+            box.style.display = 'block';
+            const rem = rec.quota - rec.used;
+            document.getElementById('balNum').innerText = rem;
+        }
+    }
+
+    function doDispense() {
+        const inst = document.getElementById('dispenseInst').value;
+        const item = document.getElementById('dispenseItemHidden').value;
+        const qty = parseInt(document.getElementById('qtyInput').value);
+
+        if(!inst || !item || !qty) return alert("يرجى إكمال كافة البيانات");
+        
+        const rec = db.find(x => x.inst === inst && x.item === item);
+        if(!rec) return alert("خطأ: المادة غير متوفرة للمؤسسة");
+        if(qty > (rec.quota - rec.used)) return alert("❌ الرصيد لا يكفي!");
+
+        rec.used += qty;
+        saveDB();
+        alert("✅ تم الصرف بنجاح");
+        document.getElementById('qtyInput').value = '';
+        checkDispenseBal();
+    }
+
+    // --- REPORT & BACKUP ---
+    function generateReport() {
+        const item = document.getElementById('reportItemHidden').value;
+        const tbody = document.getElementById('reportBody');
+        
+        if(!item) return alert("اختر مادة أولاً");
+        tbody.innerHTML = '';
+        
+        let data = db.filter(r => r.item === item);
+        data.sort((a, b) => a.inst.localeCompare(b.inst));
+
+        if(data.length === 0) { tbody.innerHTML = '<tr><td colspan="5">لا توجد بيانات</td></tr>'; return; }
+
+        let tQ=0, tU=0;
+        data.forEach(r => {
+            tQ+=r.quota; tU+=r.used;
+            const rem = r.quota - r.used;
+            tbody.innerHTML += `<tr><td>${r.inst}</td><td>${r.item}</td><td>${r.quota}</td><td>${r.used}</td><td style="color:${rem<=0?'red':'green'}; font-weight:bold">${rem}</td></tr>`;
+        });
+        tbody.innerHTML += `<tr style="background:#333; color:#fff; font-weight:bold"><td>المجموع الكلي</td><td>--</td><td>${tQ}</td><td>${tU}</td><td>${tQ-tU}</td></tr>`;
+    }
+
+    function exportBackup() {
+        if(db.length === 0) return alert("لا توجد بيانات!");
+        const dataStr = JSON.stringify(db);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Pharma_Backup_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // --- STORAGE ---
+    function saveDB() {
+        localStorage.setItem('pharma_v14', JSON.stringify(db));
+        uniqueItems = [...new Set(db.map(r => r.item))].sort();
+    }
+    function loadDB() {
+        const stored = localStorage.getItem('pharma_v14');
+        if(stored) {
+            db = JSON.parse(stored);
+            uniqueItems = [...new Set(db.map(r => r.item))].sort();
+            log(`Loaded ${db.length} records.`);
+        }
+    }
+    function clearSystem() {
+        if(confirm("تحذير: سيتم حذف جميع البيانات! هل أنت متأكد؟")) { 
+            localStorage.removeItem('pharma_v14'); 
+            location.reload(); 
+        }
+    }
+</script>
+
+</body>
+</html>
