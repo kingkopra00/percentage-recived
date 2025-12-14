@@ -10,9 +10,11 @@
             --primary: #2c3e50;
             --accent: #2980b9;
             --success: #27ae60;
-            --cancer-color: #e74c3c; /* لون مميز للسرطانية */
-            --drug-color: #8e44ad;    /* لون مميز للأدوية */
+            --cancer-color: #e74c3c;
+            --drug-color: #8e44ad;
             --bg-color: #f0f2f5;
+            --highlight-bg: #fff3cd;
+            --highlight-text: #856404;
         }
 
         body {
@@ -23,7 +25,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             background: white;
             padding: 30px;
@@ -67,21 +69,6 @@
         .btn-drugs { background-color: var(--drug-color); }
         .btn-cancer { background-color: var(--cancer-color); }
         
-        .separator {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            color: #718096;
-            margin: 20px 0;
-        }
-        .separator::before, .separator::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #cbd5e0;
-        }
-        .separator:not(:empty)::before { margin-right: .25em; }
-        .separator:not(:empty)::after { margin-left: .25em; }
-
         .manual-upload-btn {
             background: #cbd5e0;
             color: #2d3748;
@@ -89,9 +76,9 @@
             border-radius: 5px;
             cursor: pointer;
             border: none;
+            margin-top: 10px;
         }
 
-        /* Loading Spinner */
         #loading-msg {
             display: none;
             color: var(--accent);
@@ -121,55 +108,98 @@
             border-radius: 10px;
             padding: 25px;
             background: #fff;
-            text-align: center;
         }
 
-        .data-row {
-            display: flex;
-            justify-content: space-between;
+        .header-row {
+            text-align: center;
             margin-bottom: 15px;
-            border-bottom: 1px solid #f0f0f0;
+            color: #718096;
+            font-size: 0.9em;
+            border-bottom: 1px solid #eee;
             padding-bottom: 10px;
         }
-        
-        .data-item { flex: 1; }
-        .data-label { font-size: 0.9em; color: #718096; margin-bottom: 5px; }
-        .data-value { font-size: 1.2em; font-weight: bold; color: var(--primary); }
-        .planned-value { color: var(--accent); font-size: 1.4em; }
-
-        .item-name-box {
-            background: #f7fafc;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border: 1px solid #edf2f7;
-        }
-        .item-name-text {
-            font-size: 1.1em;
+        .header-code {
             font-weight: bold;
-            color: #2d3748;
-            direction: ltr; /* للأدوية بالإنجليزية */
+            color: var(--primary);
+            font-size: 1.1em;
         }
 
-        .input-group { margin-top: 25px; }
+        .info-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: stretch;
+        }
+
+        .info-box {
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .box-name {
+            flex: 2;
+            background-color: #f8fafc;
+            overflow: hidden; /* لمنع النص من الخروج */
+        }
+
+        .box-planned {
+            flex: 1;
+            background-color: var(--highlight-bg);
+            border-color: #ffeeba;
+        }
+
+        .data-label {
+            font-size: 0.85em;
+            color: #718096;
+            margin-bottom: 5px;
+            font-weight: normal;
+        }
+
+        .data-value {
+            font-weight: bold;
+            line-height: 1.3;
+        }
+
+        .planned-text { 
+            color: var(--highlight-text); 
+            font-size: 1.8em; /* حجم كبير وثابت للاحتياج */
+        }
+        
+        .name-text { 
+            color: #2d3748; 
+            direction: ltr; 
+            /* حجم الخط هنا سيتم تحديده ديناميكياً عبر الجافاسكربت */
+            font-size: 1.3em; 
+            word-break: break-word;
+        }
+
+        .input-group { margin-top: 20px; text-align: center; }
         input[type="text"] {
             width: 100%;
             padding: 15px;
-            font-size: 18px;
+            font-size: 20px;
+            font-weight: bold;
             border: 2px solid #e2e8f0;
             border-radius: 8px;
             box-sizing: border-box;
             text-align: center;
+            color: var(--primary);
         }
         input[type="text"]:focus {
             border-color: var(--accent);
             outline: none;
+            background-color: #fff;
         }
 
         .btn-container {
             display: flex;
             gap: 10px;
-            margin-top: 20px;
+            margin-top: 25px;
         }
         button {
             padding: 12px;
@@ -180,10 +210,15 @@
             font-weight: bold;
             color: white;
             transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         button:hover { opacity: 0.9; }
-        .btn-next { background: var(--accent); flex: 2; }
+        
+        .btn-back { background: #718096; flex: 1; }
         .btn-skip { background: #a0aec0; flex: 1; }
+        .btn-next { background: var(--accent); flex: 3; }
         .btn-finish { background: var(--success); width: 100%; margin-top: 20px; }
 
         #report-section { display: none; }
@@ -209,16 +244,16 @@
         
         <div class="online-buttons">
             <button class="btn-load btn-drugs" onclick="loadFromUrl('https://raw.githubusercontent.com/kingkopra00/percentage-recived/main/drugs.xlsx')">
-                💊 تحميل ملف الأدوية (Drugs)
+                💊 تحميل ملف الأدوية
             </button>
             <button class="btn-load btn-cancer" onclick="loadFromUrl('https://raw.githubusercontent.com/kingkopra00/percentage-recived/main/cancer.xlsx')">
-                🎗️ تحميل ملف السرطانية (Cancer)
+                🎗️ تحميل ملف السرطانية
             </button>
         </div>
 
-        <div id="loading-msg">جاري تحميل الملف من السيرفر... يرجى الانتظار</div>
+        <div id="loading-msg">جاري تحميل الملف...</div>
 
-        <div class="separator">أو</div>
+        <p style="color:#aaa; margin:15px 0;">---------------- أو ----------------</p>
 
         <button class="manual-upload-btn" onclick="document.getElementById('fileInput').click()">
             رفع ملف Excel من الجهاز 📂
@@ -230,33 +265,38 @@
         <div class="progress-container">
             <div id="progress-bar" class="progress-bar"></div>
         </div>
-        <p style="text-align: center; color: #718096;">مادة <span id="current-index">0</span> من <span id="total-items">0</span></p>
+        <p style="text-align: center; color: #718096; margin-bottom: 10px;">
+            مادة <span id="current-index" style="font-weight:bold; color:var(--accent)">0</span> من <span id="total-items">0</span>
+        </p>
 
         <div class="item-card">
-            <div class="data-row">
-                <div class="data-item">
-                    <div class="data-label">الرمز الوطني</div>
-                    <div class="data-value" id="disp-code">--</div>
-                </div>
-                <div class="data-item">
-                    <div class="data-label">تقدير الحاجة (Planned)</div>
-                    <div class="data-value planned-value" id="disp-planned">0</div>
-                </div>
+            <div class="header-row">
+                الرمز الوطني: <span class="header-code" id="disp-code">--</span>
             </div>
 
-            <div class="item-name-box">
-                <div class="data-label">اسم المادة</div>
-                <div class="item-name-text" id="disp-name">--</div>
+            <div class="info-container">
+                <div class="info-box box-name">
+                    <div class="data-label">اسم المادة (ENG)</div>
+                    <div class="data-value name-text" id="disp-name">--</div>
+                </div>
+
+                <div class="info-box box-planned">
+                    <div class="data-label">تقدير الحاجة</div>
+                    <div class="data-value planned-text" id="disp-planned">0</div>
+                </div>
             </div>
 
             <div class="input-group">
-                <label style="display:block; margin-bottom:10px; font-weight:bold;">الكمية المستلمة فعلياً (الرصيد):</label>
-                <input type="text" id="input-qty" placeholder="أدخل الرقم هنا (يقبل العربية والإنجليزية)" onkeypress="checkEnter(event)">
+                <label style="display:block; margin-bottom:10px; font-weight:bold; color:#4a5568;">
+                    الكمية المستلمة فعلياً (الرصيد):
+                </label>
+                <input type="text" id="input-qty" placeholder="أدخل الرقم هنا" onkeypress="checkEnter(event)">
             </div>
 
             <div class="btn-container">
-                <button class="btn-skip" onclick="skipItem()">تجاوز (Skip)</button>
-                <button class="btn-next" onclick="saveItem()">حفظ وانتقال (Next)</button>
+                <button class="btn-back" onclick="prevItem()" id="btn-back" title="رجوع للمادة السابقة">⬅️ رجوع</button>
+                <button class="btn-skip" onclick="skipItem()" title="تجاهل المادة">تجاوز ⏭️</button>
+                <button class="btn-next" onclick="saveItem()" title="حفظ وانتقال">حفظ وانتقال ✅</button>
             </div>
         </div>
         
@@ -283,7 +323,7 @@
         </table>
         <div class="no-print" style="text-align: center; margin-top: 30px;">
             <button onclick="window.print()" style="background: var(--primary); width: 200px;">طباعة</button>
-            <button onclick="location.reload()" style="background: #718096; width: 200px;">العودة للقائمة الرئيسية</button>
+            <button onclick="location.reload()" style="background: #718096; width: 200px;">العودة للقائمة</button>
         </div>
     </div>
 
@@ -294,7 +334,18 @@
     let reportData = [];
     let currentIndex = 0;
 
-    // دالة تحويل الأرقام العربية
+    // دالة لاستخراج النص الانكليزي فقط وتنظيفه
+    function filterEnglishText(text) {
+        if (!text) return "";
+        // استبدال أي حرف عربي بمسافة فارغة
+        // النطاق \u0600-\u06FF يغطي الحروف العربية والتشكيل
+        let englishOnly = text.replace(/[\u0600-\u06FF]/g, "").trim();
+        // إزالة الفراغات الزائدة المتكررة
+        englishOnly = englishOnly.replace(/\s+/g, " ");
+        // إزالة الرموز الزائدة في البداية والنهاية إن وجدت
+        return englishOnly;
+    }
+
     function parseArabicNum(str) {
         if (!str) return 0;
         str = str.toString();
@@ -306,34 +357,27 @@
         return parseFloat(str);
     }
 
-    // دالة تحميل الملف من الرابط المباشر
     async function loadFromUrl(url) {
         document.getElementById('loading-msg').style.display = 'block';
-        
         try {
             const response = await fetch(url);
             if (!response.ok) throw new Error("فشل تحميل الملف");
-            
             const arrayBuffer = await response.arrayBuffer();
             const data = new Uint8Array(arrayBuffer);
             const workbook = XLSX.read(data, {type: 'array'});
             const firstSheet = workbook.SheetNames[0];
             const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {header: 1});
-            
             processExcel(rows);
-            
         } catch (error) {
-            alert("حدث خطأ أثناء تحميل الملف من السيرفر: " + error.message);
+            alert("حدث خطأ: " + error.message);
         } finally {
             document.getElementById('loading-msg').style.display = 'none';
         }
     }
 
-    // دالة الرفع اليدوي
     document.getElementById('fileInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if(!file) return;
-
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
@@ -343,13 +387,12 @@
                 const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {header: 1});
                 processExcel(rows);
             } catch (err) {
-                alert("خطأ في قراءة الملف: " + err.message);
+                alert("خطأ: " + err.message);
             }
         };
         reader.readAsArrayBuffer(file);
     });
 
-    // معالجة البيانات
     function processExcel(rows) {
         allItems = [];
         let headerIndex = -1;
@@ -373,7 +416,6 @@
 
             let codeIndex = -1;
             let codeVal = "";
-            
             for(let c=0; c < Math.min(row.length, 5); c++) {
                 let cell = (row[c] || "").toString().trim();
                 if(/^[0-9A-Z]{2,3}-[A-Z0-9]{3}-[A-Z0-9]{3}/.test(cell)) {
@@ -384,9 +426,12 @@
             }
 
             if(codeIndex !== -1) {
-                let nameVal = (row[codeIndex + 1] || "غير معروف").toString().trim();
+                let rawName = (row[codeIndex + 1] || "").toString();
+                // هنا يتم تطبيق فلترة اللغة العربية
+                let nameVal = filterEnglishText(rawName);
+                if(nameVal === "") nameVal = rawName; // في حال كان الاسم كله عربي نبقيه كما هو
+
                 let plannedVal = 0;
-                // البحث عن الكمية من اليمين
                 for(let j = row.length - 1; j > codeIndex; j--) {
                     let cell = row[j];
                     if(cell !== undefined && cell !== null && cell !== "") {
@@ -397,19 +442,14 @@
                         }
                     }
                 }
-
-                allItems.push({
-                    code: codeVal,
-                    name: nameVal,
-                    planned: plannedVal
-                });
+                allItems.push({ code: codeVal, name: nameVal, planned: plannedVal });
             }
         }
 
         if(allItems.length > 0) {
             startApp();
         } else {
-            alert("لم يتم العثور على مواد صالحة في الملف.");
+            alert("لا توجد بيانات صالحة.");
         }
     }
 
@@ -417,10 +457,11 @@
         document.getElementById('upload-section').style.display = 'none';
         document.getElementById('wizard-section').style.display = 'block';
         document.getElementById('total-items').innerText = allItems.length;
+        reportData = [];
         loadItem();
     }
 
-    function loadItem() {
+    function loadItem(preserveInput = false) {
         if(currentIndex >= allItems.length) {
             finishReport();
             return;
@@ -429,12 +470,30 @@
         const item = allItems[currentIndex];
         document.getElementById('current-index').innerText = currentIndex + 1;
         document.getElementById('disp-code').innerText = item.code;
-        document.getElementById('disp-name').innerText = item.name;
+        
+        const nameEl = document.getElementById('disp-name');
+        nameEl.innerText = item.name;
+
+        // ** ميزة تصغير الخط التلقائي **
+        // إعادة الحجم للافتراضي أولاً
+        nameEl.style.fontSize = "1.3em";
+        // إذا كان الاسم طويلاً (أكثر من 40 حرف)، صغر الخط
+        if (item.name.length > 80) {
+            nameEl.style.fontSize = "0.9em";
+        } else if (item.name.length > 40) {
+            nameEl.style.fontSize = "1.1em";
+        }
+
         document.getElementById('disp-planned').innerText = item.planned.toLocaleString('en-US');
         
-        const input = document.getElementById('input-qty');
-        input.value = '';
-        input.focus();
+        document.getElementById('btn-back').disabled = (currentIndex === 0);
+        document.getElementById('btn-back').style.opacity = (currentIndex === 0) ? "0.5" : "1";
+
+        if (!preserveInput) {
+            const input = document.getElementById('input-qty');
+            input.value = '';
+            input.focus();
+        }
 
         const pct = ((currentIndex) / allItems.length) * 100;
         document.getElementById('progress-bar').style.width = pct + "%";
@@ -446,7 +505,7 @@
         const received = parseArabicNum(valRaw);
 
         if(isNaN(received) && valRaw.trim() !== "") {
-             alert("أرقام فقط رجاءً.");
+             alert("أرقام فقط.");
              return;
         }
         
@@ -459,19 +518,43 @@
         let percent = 0;
         if(item.planned > 0) percent = ((received / item.planned) * 100).toFixed(1);
 
-        reportData.push({
-            ...item,
-            received: received,
-            percent: percent
-        });
+        const existingIndex = reportData.findIndex(r => r.code === item.code);
+        const record = { ...item, received: received, percent: percent };
+
+        if (existingIndex !== -1) {
+            reportData[existingIndex] = record;
+        } else {
+            reportData.push(record);
+        }
 
         currentIndex++;
         loadItem();
     }
 
     function skipItem() {
+        const itemCode = allItems[currentIndex].code;
+        const existingIndex = reportData.findIndex(r => r.code === itemCode);
+        if (existingIndex !== -1) {
+            reportData.splice(existingIndex, 1);
+        }
         currentIndex++;
         loadItem();
+    }
+
+    function prevItem() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            loadItem(true);
+            const itemCode = allItems[currentIndex].code;
+            const savedItem = reportData.find(r => r.code === itemCode);
+            const input = document.getElementById('input-qty');
+            if (savedItem) {
+                input.value = savedItem.received;
+            } else {
+                input.value = '';
+            }
+            input.focus();
+        }
     }
 
     function checkEnter(e) {
@@ -487,7 +570,7 @@
         tbody.innerHTML = "";
 
         if(reportData.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='6'>لا توجد بيانات مدخلة.</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='6'>لا توجد بيانات.</td></tr>";
             return;
         }
 
