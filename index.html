@@ -3,369 +3,509 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أداة توزيع الاحتياجات (V14)</title>
+    <title>نظام الجرد السنوي - دائرة صحة المثنى</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        :root { 
-            --primary-color: #005a9c; --secondary-color: #f0f8ff; 
-            --success-color: #28a745; --error-color: #dc3545; --info-color: #17a2b8;
+        :root {
+            --primary: #2c3e50;
+            --accent: #2980b9;
+            --success: #27ae60;
+            --cancer-color: #e74c3c; /* لون مميز للسرطانية */
+            --drug-color: #8e44ad;    /* لون مميز للأدوية */
+            --bg-color: #f0f2f5;
         }
-        body { 
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-            direction: rtl; background-color: #f4f6f9; margin: 20px; 
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
         }
-        .container { max-width: 1000px; margin: auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1, h2 { text-align: center; color: var(--primary-color); }
-        .step { margin-bottom: 25px; padding: 20px; border: 1px dashed #ccc; border-radius: 8px; background-color: var(--secondary-color); }
-        label, h3 { font-weight: bold; margin-bottom: 8px; display: block; }
-        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { 
-            font-size: 1em; border: none; border-radius: 5px; cursor: pointer; 
-            color: white; padding: 10px 15px; margin-top: 5px;
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
-        .file-loader { border-top: 1px solid #ddd; padding-top: 15px; }
-        .file-loader .button-group { display: flex; gap: 10px; }
-        .file-loader .status { font-size: 0.9em; color: #6c757d; margin-top: 8px; }
-        .btn-repo { background-color: var(--primary-color); }
-        .btn-local { background-color: #5a6268; }
-        .btn-process { background-color: var(--primary-color); width: 100%;}
-        .btn-export { background-color: var(--info-color); }
-        .btn-print { background-color: #6c757d; }
-        .message { padding: 15px; margin-top: 20px; border-radius: 5px; text-align: center; font-weight: bold; }
-        .success { background-color: #d4edda; color: #155724; }
-        .error { background-color: #f8d7da; color: #721c24; }
-        .hidden { display: none; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: right; }
-        thead th { background-color: var(--primary-color); color: white; }
-        .button-group { display: flex; gap: 10px; }
+
+        h2 { text-align: center; color: var(--primary); margin-bottom: 30px; }
+
+        /* منطقة الرفع */
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .online-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn-load {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-load:active { transform: scale(0.98); }
+        .btn-drugs { background-color: var(--drug-color); }
+        .btn-cancer { background-color: var(--cancer-color); }
+        
+        .separator {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #718096;
+            margin: 20px 0;
+        }
+        .separator::before, .separator::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #cbd5e0;
+        }
+        .separator:not(:empty)::before { margin-right: .25em; }
+        .separator:not(:empty)::after { margin-left: .25em; }
+
+        .manual-upload-btn {
+            background: #cbd5e0;
+            color: #2d3748;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Loading Spinner */
+        #loading-msg {
+            display: none;
+            color: var(--accent);
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* بطاقة المادة (Wizard) */
+        #wizard-section { display: none; }
+        
+        .progress-container {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--success);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .item-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 25px;
+            background: #fff;
+            text-align: center;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        
+        .data-item { flex: 1; }
+        .data-label { font-size: 0.9em; color: #718096; margin-bottom: 5px; }
+        .data-value { font-size: 1.2em; font-weight: bold; color: var(--primary); }
+        .planned-value { color: var(--accent); font-size: 1.4em; }
+
+        .item-name-box {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #edf2f7;
+        }
+        .item-name-text {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #2d3748;
+            direction: ltr; /* للأدوية بالإنجليزية */
+        }
+
+        .input-group { margin-top: 25px; }
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        input[type="text"]:focus {
+            border-color: var(--accent);
+            outline: none;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        .btn-next { background: var(--accent); flex: 2; }
+        .btn-skip { background: #a0aec0; flex: 1; }
+        .btn-finish { background: var(--success); width: 100%; margin-top: 20px; }
+
+        #report-section { display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #cbd5e0; padding: 12px; text-align: center; }
+        th { background: var(--primary); color: white; }
+        tr:nth-child(even) { background: #f7fafc; }
 
         @media print {
-            body * { visibility: hidden; }
-            #results, #results * { visibility: visible; }
-            #results { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: none; }
-            .button-group, #searchInput, #searchBtn, label[for="searchInput"] { display: none; }
+            .no-print, .upload-area, #wizard-section { display: none !important; }
+            #report-section { display: block !important; }
+            body, .container { background: white; padding: 0; margin: 0; box-shadow: none; max-width: 100%; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>أداة توزيع الاحتياجات (V14)</h1>
-        <div id="loadingStatus" class="message success">جاري تحميل البيانات من ذاكرة المتصفح...</div>
-        <div id="step1" class="step">
-            <h3>الخطوة 1: تحميل الملفات</h3>
-            <div class="file-loader">
-                <label>1. ملف الاحتياج المرسل</label>
-                <div class="button-group">
-                    <button class="btn-repo" onclick="loadFileFromRepo('directorate')">تحميل من المستودع</button>
-                    <button class="btn-local" onclick="document.getElementById('directorateFile').click()">رفع من الجهاز</button>
-                </div>
-                <div id="directorateStatus" class="status">الحالة: لم يتم التحميل</div>
-                <input type="file" id="directorateFile" class="hidden" onchange="loadFileFromLocal(this, 'directorate')">
-            </div>
-            <br>
-            <div class="file-loader">
-                <label>2. ملف الاحتياج المعتمد</label>
-                <div class="button-group">
-                    <button class="btn-repo" onclick="loadFileFromRepo('ministry')">تحميل من المستودع</button>
-                    <button class="btn-local" onclick="document.getElementById('ministryFile').click()">رفع من الجهاز</button>
-                </div>
-                <div id="ministryStatus" class="status">الحالة: لم يتم التحميل</div>
-                <input type="file" id="ministryFile" class="hidden" onchange="loadFileFromLocal(this, 'ministry')">
-            </div>
-        </div>
-        <div id="step2" class="step hidden">
-            </div>
-        <div id="messageArea"></div>
-    </div>
-    
-    <template id="search-template">
-        <h3>الخطوة 2: البحث والتوزيع</h3>
-        <label for="searchInput">ابحث عن المادة</label>
-        <input type="text" id="searchInput" list="itemsDatalist" placeholder="أدخل اسم المادة أو الرمز الوطني...">
-        <datalist id="itemsDatalist"></datalist>
-        <button id="searchBtn" style="background-color: var(--success-color); width:100%; margin-top:10px;">بحث</button>
-        <div id="results" class="hidden" style="margin-top: 20px;">
-            <h2 id="itemName" style="font-size: 1.5em;"></h2>
-            <div style="display: flex; justify-content: space-around; text-align: center; background: #fafafa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <div><h4 style="margin:0; color: #555;">إجمالي المطلوب</h4><p id="total-requested" style="font-size: 1.8em; font-weight: bold; margin: 5px 0; color: #d9534f;">0</p></div>
-                <div><h4 style="margin:0; color: #555;">إجمالي المعتمد</h4><p id="total-approved" style="font-size: 1.8em; font-weight: bold; margin: 5px 0; color: #5cb85c;">0</p></div>
-            </div>
-            <h3>جدول توزيع الحصة</h3><table id="distributionTable"></table>
-            <div class="button-group">
-                <button id="exportBtn" class="btn-export">تصدير كملف CSV</button>
-                <button id="printBtn" class="btn-print">طباعة النتائج</button>
-            </div>
-        </div>
-    </template>
 
-    <script>
-        let directorateData = [], ministryData = new Map(), uniqueItems = new Map(), lastSearchResults = [];
+<div class="container">
+    <h2 class="no-print">نظام الجرد السنوي - مطابقة الرصيد</h2>
 
-        // --- IndexedDB Functions for Caching ---
-        const dbName = 'FileCacheDB';
-        let db;
-
-        function openDb() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 1);
-                request.onerror = () => reject("Error opening DB");
-                request.onsuccess = (event) => {
-                    db = event.target.result;
-                    resolve(db);
-                };
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    db.createObjectStore('files', { keyPath: 'id' });
-                };
-            });
-        }
-
-        function saveFileToDb(id, blob) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['files'], 'readwrite');
-                const store = transaction.objectStore('files');
-                const request = store.put({ id, blob });
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject("Error saving file");
-            });
-        }
-
-        function loadFileFromDb(id) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['files'], 'readonly');
-                const store = transaction.objectStore('files');
-                const request = store.get(id);
-                request.onsuccess = (event) => {
-                    resolve(event.target.result ? event.target.result.blob : null);
-                };
-                request.onerror = () => reject("Error loading file");
-            });
-        }
-        // --- End IndexedDB Functions ---
-
-
-        const sanitizeString = (str) => String(str || '').replace(/\s+/g, ' ').trim();
-        const formatNumber = (num) => Math.round(Number(num)).toLocaleString('en-US');
-
-        const fileConfigs = {
-            directorate: { name: 'احتياج ٢٠٢٥.xlsx', statusEl: 'directorateStatus', dataVar: 'directorateData', processor: processDirectorateData },
-            ministry: { name: 'المعتمد ٢٠٢٥.xlsx', statusEl: 'ministryStatus', dataVar: 'ministryData', processor: processMinistryData }
-        };
-
-        // Main logic starts here
-        window.onload = async () => {
-            try {
-                await openDb();
-                document.getElementById('loadingStatus').innerText = '✅ جاهز للعمل.';
-                // Try to load both files from cache
-                const dirBlob = await loadFileFromDb('directorate');
-                const minBlob = await loadFileFromDb('ministry');
-                
-                if (dirBlob) await processFile(dirBlob, 'directorate', 'ذاكرة المتصفح');
-                if (minBlob) await processFile(minBlob, 'ministry', 'ذاكرة المتصفح');
-
-            } catch (error) {
-                document.getElementById('loadingStatus').className = 'message error';
-                document.getElementById('loadingStatus').innerText = 'حدث خطأ في تحميل الذاكرة.';
-                console.error(error);
-            }
-        };
-
-        async function loadFileFromRepo(type) {
-            const config = fileConfigs[type];
-            const statusEl = document.getElementById(config.statusEl);
-            statusEl.innerText = `الحالة: جاري التحميل من المستودع...`;
-            try {
-                const response = await fetch(config.name);
-                if (!response.ok) throw new Error(`لم يتم العثور على الملف "${config.name}" في المستودع.`);
-                const blob = await response.blob();
-                await processFile(blob, type, 'المستودع');
-                await saveFileToDb(type, blob);
-            } catch (e) {
-                statusEl.innerText = `الحالة: فشل التحميل. ${e.message}`;
-            }
-        }
-
-        async function loadFileFromLocal(inputElement, type) {
-            if (inputElement.files.length === 0) return;
-            const file = inputElement.files[0];
-            await processFile(file, type, 'الجهاز المحلي');
-            await saveFileToDb(type, file);
-        }
-
-        async function processFile(fileBlob, type, source) {
-            const config = fileConfigs[type];
-            const statusEl = document.getElementById(config.statusEl);
-            try {
-                const workbook = await readExcelBlob(fileBlob);
-                await config.processor(workbook);
-                statusEl.innerHTML = `✅ تم التحميل بنجاح من: <strong>${source}</strong>`;
-                checkIfReady();
-            } catch (e) {
-                statusEl.innerText = `الحالة: فشل التحليل. ${e.message}`;
-                console.error(e);
-            }
-        }
-
-        const readExcelBlob = (blob) => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = e => { try { resolve(XLSX.read(e.target.result, { type: 'array' })); } catch(err) { reject(err); }};
-            reader.onerror = e => reject(new Error("فشل في قراءة الملف"));
-            reader.readAsArrayBuffer(blob);
-        });
-
-        function processDirectorateData(workbook) {
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const sheetAsArray = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-            const mainHeaderRowIndex = sheetAsArray.findIndex(row => row.some(cell => sanitizeString(cell) === 'NATIONAL CODE'));
-            if (mainHeaderRowIndex === -1) throw new Error("لم يتم العثور على 'NATIONAL CODE'");
-            const mainHeaders = sheetAsArray[mainHeaderRowIndex].map(h => sanitizeString(h));
-            const institutionHeaders = (sheetAsArray[mainHeaderRowIndex - 1] || []).map(h => sanitizeString(h));
-            const itemCodeIndex = mainHeaders.indexOf('NATIONAL CODE');
-            const itemNameIndex = mainHeaders.indexOf('ITEMS');
-            const institutionColumns = institutionHeaders.map((h, i) => ({h, i})).filter(c => c.h.startsWith('احتياج') && !c.h.startsWith('احتياج عام') && c.h !== 'احتياج 2025');
-            if (institutionColumns.length === 0) throw new Error("لم يتم العثور على أعمدة احتياج.");
-            
-            const transformedData = [];
-            uniqueItems.clear();
-            const dataRows = sheetAsArray.slice(mainHeaderRowIndex + 1);
-            dataRows.forEach(row => {
-                const itemCode = sanitizeString(row[itemCodeIndex]);
-                const itemName = sanitizeString(row[itemNameIndex]);
-                if (!itemCode || !itemName) return;
-                if (!uniqueItems.has(itemCode)) { uniqueItems.set(itemCode, itemName); }
-                institutionColumns.forEach(col => {
-                    transformedData.push({
-                        institution: col.h, item_code: itemCode,
-                        item_name: itemName, quantity_requested: Number(row[col.i]) || 0
-                    });
-                });
-            });
-            directorateData = transformedData;
-        }
-
-        function processMinistryData(workbook) {
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const sheetAsArray = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-            const mainHeaderRowIndex = sheetAsArray.findIndex(row => row.some(cell => sanitizeString(cell) === 'NATIONAL CODE'));
-            if (mainHeaderRowIndex === -1) throw new Error("لم يتم العثور على 'NATIONAL CODE'");
-            const mainHeaders = sheetAsArray[mainHeaderRowIndex].map(h => sanitizeString(h));
-            const topHeaders = (sheetAsArray[mainHeaderRowIndex - 1] || []).map(h => sanitizeString(h));
-            const itemCodeIndex = mainHeaders.indexOf('NATIONAL CODE');
-            const approvedQtyCol = topHeaders.map((h, i) => ({h, i})).find(c=>c.h.includes('دائرة صحة المثنى'));
-            if (!approvedQtyCol) throw new Error("لم يتم العثور على عمود 'دائرة صحة المثنى'.");
-            
-            ministryData.clear();
-            const dataRows = sheetAsArray.slice(mainHeaderRowIndex + 1);
-            dataRows.forEach(row => {
-                const ic = sanitizeString(row[itemCodeIndex]);
-                if (ic) ministryData.set(ic, Number(row[approvedQtyCol.i]) || 0);
-            });
-        }
-
-        function checkIfReady() {
-            if (directorateData.length > 0 && ministryData.size > 0) {
-                document.getElementById('step2').innerHTML = document.getElementById('search-template').innerHTML;
-                document.getElementById('step2').classList.remove('hidden');
-                document.getElementById('searchBtn').addEventListener('click', performSearch);
-                document.getElementById('searchInput').addEventListener('keyup', (e) => { if (e.key === 'Enter') performSearch(); });
-                document.getElementById('exportBtn').addEventListener('click', exportToCsv);
-                document.getElementById('printBtn').addEventListener('click', () => window.print());
-                
-                const datalist = document.getElementById('itemsDatalist');
-                datalist.innerHTML = '';
-                for (const [code, name] of uniqueItems.entries()) {
-                    const option = document.createElement('option');
-                    option.dataset.code = code;
-                    option.value = name;
-                    datalist.appendChild(option);
-                }
-            }
-        }
+    <div id="upload-section" class="upload-area no-print">
+        <h3>اختر الملف للبدء</h3>
         
-        // performSearch and exportToCsv functions remain the same as the previous final version.
-        function performSearch() {
-            const searchInput = document.getElementById('searchInput');
-            const inputValue = sanitizeString(searchInput.value);
-            const resultsDiv = document.getElementById('results');
-            if (!inputValue) return;
-            let definitiveCode = null;
-            const options = document.getElementById('itemsDatalist').options;
-            for (let i = 0; i < options.length; i++) {
-                if (sanitizeString(options[i].value) === inputValue) {
-                    definitiveCode = sanitizeString(options[i].dataset.code);
+        <div class="online-buttons">
+            <button class="btn-load btn-drugs" onclick="loadFromUrl('https://raw.githubusercontent.com/kingkopra00/percentage-recived/main/drugs.xlsx')">
+                💊 تحميل ملف الأدوية (Drugs)
+            </button>
+            <button class="btn-load btn-cancer" onclick="loadFromUrl('https://raw.githubusercontent.com/kingkopra00/percentage-recived/main/cancer.xlsx')">
+                🎗️ تحميل ملف السرطانية (Cancer)
+            </button>
+        </div>
+
+        <div id="loading-msg">جاري تحميل الملف من السيرفر... يرجى الانتظار</div>
+
+        <div class="separator">أو</div>
+
+        <button class="manual-upload-btn" onclick="document.getElementById('fileInput').click()">
+            رفع ملف Excel من الجهاز 📂
+        </button>
+        <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
+    </div>
+
+    <div id="wizard-section">
+        <div class="progress-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <p style="text-align: center; color: #718096;">مادة <span id="current-index">0</span> من <span id="total-items">0</span></p>
+
+        <div class="item-card">
+            <div class="data-row">
+                <div class="data-item">
+                    <div class="data-label">الرمز الوطني</div>
+                    <div class="data-value" id="disp-code">--</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">تقدير الحاجة (Planned)</div>
+                    <div class="data-value planned-value" id="disp-planned">0</div>
+                </div>
+            </div>
+
+            <div class="item-name-box">
+                <div class="data-label">اسم المادة</div>
+                <div class="item-name-text" id="disp-name">--</div>
+            </div>
+
+            <div class="input-group">
+                <label style="display:block; margin-bottom:10px; font-weight:bold;">الكمية المستلمة فعلياً (الرصيد):</label>
+                <input type="text" id="input-qty" placeholder="أدخل الرقم هنا (يقبل العربية والإنجليزية)" onkeypress="checkEnter(event)">
+            </div>
+
+            <div class="btn-container">
+                <button class="btn-skip" onclick="skipItem()">تجاوز (Skip)</button>
+                <button class="btn-next" onclick="saveItem()">حفظ وانتقال (Next)</button>
+            </div>
+        </div>
+        
+        <button class="btn-finish" onclick="finishReport()">إنهاء وإصدار التقرير</button>
+    </div>
+
+    <div id="report-section">
+        <div style="text-align: center;">
+            <h3>تقرير الجرد السنوي</h3>
+            <p>التاريخ: <span id="r-date"></span></p>
+        </div>
+        <table id="report-tbl">
+            <thead>
+                <tr>
+                    <th>ت</th>
+                    <th>الرمز الوطني</th>
+                    <th>اسم المادة</th>
+                    <th>تقدير الحاجة</th>
+                    <th>الكمية المستلمة</th>
+                    <th>النسبة %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div class="no-print" style="text-align: center; margin-top: 30px;">
+            <button onclick="window.print()" style="background: var(--primary); width: 200px;">طباعة</button>
+            <button onclick="location.reload()" style="background: #718096; width: 200px;">العودة للقائمة الرئيسية</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let allItems = [];
+    let reportData = [];
+    let currentIndex = 0;
+
+    // دالة تحويل الأرقام العربية
+    function parseArabicNum(str) {
+        if (!str) return 0;
+        str = str.toString();
+        const arabicDigits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+        for (let i = 0; i < 10; i++) {
+            str = str.replace(new RegExp(arabicDigits[i], 'g'), i);
+        }
+        str = str.replace(/,/g, '').trim();
+        return parseFloat(str);
+    }
+
+    // دالة تحميل الملف من الرابط المباشر
+    async function loadFromUrl(url) {
+        document.getElementById('loading-msg').style.display = 'block';
+        
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("فشل تحميل الملف");
+            
+            const arrayBuffer = await response.arrayBuffer();
+            const data = new Uint8Array(arrayBuffer);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheet = workbook.SheetNames[0];
+            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {header: 1});
+            
+            processExcel(rows);
+            
+        } catch (error) {
+            alert("حدث خطأ أثناء تحميل الملف من السيرفر: " + error.message);
+        } finally {
+            document.getElementById('loading-msg').style.display = 'none';
+        }
+    }
+
+    // دالة الرفع اليدوي
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheet = workbook.SheetNames[0];
+                const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {header: 1});
+                processExcel(rows);
+            } catch (err) {
+                alert("خطأ في قراءة الملف: " + err.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    // معالجة البيانات
+    function processExcel(rows) {
+        allItems = [];
+        let headerIndex = -1;
+
+        for(let i=0; i < Math.min(rows.length, 50); i++) {
+            const str = JSON.stringify(rows[i] || []).toUpperCase();
+            if(str.includes("NATIONAL CODE")) {
+                headerIndex = i;
+                break;
+            }
+        }
+
+        if(headerIndex === -1) {
+            alert("الملف لا يحتوي على عمود NATIONAL CODE.");
+            return;
+        }
+
+        for(let i = headerIndex + 1; i < rows.length; i++) {
+            const row = rows[i];
+            if(!row || row.length === 0) continue;
+
+            let codeIndex = -1;
+            let codeVal = "";
+            
+            for(let c=0; c < Math.min(row.length, 5); c++) {
+                let cell = (row[c] || "").toString().trim();
+                if(/^[0-9A-Z]{2,3}-[A-Z0-9]{3}-[A-Z0-9]{3}/.test(cell)) {
+                    codeIndex = c;
+                    codeVal = cell;
                     break;
                 }
             }
-            let relevantEntries;
-            if (definitiveCode) {
-                relevantEntries = directorateData.filter(row => row.item_code === definitiveCode);
-            } else {
-                const query = inputValue.toLowerCase();
-                relevantEntries = directorateData.filter(row => row.item_code.toLowerCase().includes(query) || (row.item_name && row.item_name.toLowerCase().includes(query)));
+
+            if(codeIndex !== -1) {
+                let nameVal = (row[codeIndex + 1] || "غير معروف").toString().trim();
+                let plannedVal = 0;
+                // البحث عن الكمية من اليمين
+                for(let j = row.length - 1; j > codeIndex; j--) {
+                    let cell = row[j];
+                    if(cell !== undefined && cell !== null && cell !== "") {
+                        let num = parseArabicNum(cell);
+                        if(!isNaN(num)) {
+                            plannedVal = num;
+                            break;
+                        }
+                    }
+                }
+
+                allItems.push({
+                    code: codeVal,
+                    name: nameVal,
+                    planned: plannedVal
+                });
             }
-            lastSearchResults = relevantEntries;
-            if (relevantEntries.length === 0) {
-                resultsDiv.classList.add('hidden');
-                alert("لم يتم العثور على المادة المطلوبة.");
-                return;
-            }
-            const itemCode = relevantEntries[0].item_code;
-            const itemName = relevantEntries[0].item_name;
-            const totalRequested = relevantEntries.reduce((sum, row) => sum + row.quantity_requested, 0);
-            const totalApproved = ministryData.get(itemCode) || 0;
-            resultsDiv.classList.remove('hidden');
-            document.getElementById('itemName').innerHTML = `نتائج البحث لـ: <strong>${itemName}</strong> (الرمز: ${itemCode})`;
-            document.getElementById('total-requested').innerText = formatNumber(totalRequested);
-            document.getElementById('total-approved').innerText = formatNumber(totalApproved);
-            const table = document.getElementById('distributionTable');
-            table.innerHTML = `<thead><tr><th>المؤسسة الصحية</th><th>الكمية المطلوبة</th><th>النسبة من الإجمالي</th><th>الحصة المعتمدة</th></tr></thead><tbody></tbody>`;
-            const tbody = table.querySelector('tbody');
-            relevantEntries.forEach(entry => {
-                const requested = entry.quantity_requested;
-                const percentage = (totalRequested > 0) ? (requested / totalRequested) * 100 : 0;
-                const share = (totalRequested > 0) ? (requested / totalRequested) * totalApproved : 0;
-                tbody.innerHTML += `<tr>
-                    <td>${entry.institution}</td>
-                    <td>${formatNumber(requested)}</td>
-                    <td>${percentage.toFixed(2)}%</td>
-                    <td><b>${formatNumber(share)}</b></td>
-                </tr>`;
-            });
         }
 
-        function exportToCsv() {
-            if (lastSearchResults.length === 0) {
-                alert("لا توجد بيانات لتصديرها."); return;
-            }
-            const itemCode = lastSearchResults[0].item_code;
-            const itemName = lastSearchResults[0].item_name;
-            const totalRequested = lastSearchResults.reduce((sum, row) => sum + row.quantity_requested, 0);
-            const totalApproved = ministryData.get(itemCode) || 0;
-            let csvContent = `اسم المادة,"${itemName}"\n`;
-            csvContent += `الرمز الوطني,"${itemCode}"\n`;
-            csvContent += `إجمالي الكمية المطلوبة,${totalRequested}\n`;
-            csvContent += `إجمالي الكمية المعتمدة,${totalApproved}\n\n`;
-            const headers = ["المؤسسة الصحية", "الكمية المطلوبة", "النسبة من الإجمالي", "الحصة المعتمدة"];
-            csvContent += headers.join(',') + '\n';
-            lastSearchResults.forEach(entry => {
-                const requested = entry.quantity_requested;
-                const percentage = (totalRequested > 0) ? (requested / totalRequested) * 100 : 0;
-                const share = (totalRequested > 0) ? (requested / totalRequested) * totalApproved : 0;
-                csvContent += `"${entry.institution}",${requested},"${percentage.toFixed(2)}%",${Math.round(share)}\n`;
-            });
-            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            const fileName = `${sanitizeString(itemName)}.csv`;
-            link.setAttribute('download', fileName);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        if(allItems.length > 0) {
+            startApp();
+        } else {
+            alert("لم يتم العثور على مواد صالحة في الملف.");
         }
-    </script>
+    }
+
+    function startApp() {
+        document.getElementById('upload-section').style.display = 'none';
+        document.getElementById('wizard-section').style.display = 'block';
+        document.getElementById('total-items').innerText = allItems.length;
+        loadItem();
+    }
+
+    function loadItem() {
+        if(currentIndex >= allItems.length) {
+            finishReport();
+            return;
+        }
+
+        const item = allItems[currentIndex];
+        document.getElementById('current-index').innerText = currentIndex + 1;
+        document.getElementById('disp-code').innerText = item.code;
+        document.getElementById('disp-name').innerText = item.name;
+        document.getElementById('disp-planned').innerText = item.planned.toLocaleString('en-US');
+        
+        const input = document.getElementById('input-qty');
+        input.value = '';
+        input.focus();
+
+        const pct = ((currentIndex) / allItems.length) * 100;
+        document.getElementById('progress-bar').style.width = pct + "%";
+    }
+
+    function saveItem() {
+        const input = document.getElementById('input-qty');
+        const valRaw = input.value;
+        const received = parseArabicNum(valRaw);
+
+        if(isNaN(received) && valRaw.trim() !== "") {
+             alert("أرقام فقط رجاءً.");
+             return;
+        }
+        
+        if(valRaw.trim() === "") {
+            alert("أدخل رقم أو اضغط تجاوز.");
+            return;
+        }
+
+        const item = allItems[currentIndex];
+        let percent = 0;
+        if(item.planned > 0) percent = ((received / item.planned) * 100).toFixed(1);
+
+        reportData.push({
+            ...item,
+            received: received,
+            percent: percent
+        });
+
+        currentIndex++;
+        loadItem();
+    }
+
+    function skipItem() {
+        currentIndex++;
+        loadItem();
+    }
+
+    function checkEnter(e) {
+        if(e.key === "Enter") saveItem();
+    }
+
+    function finishReport() {
+        document.getElementById('wizard-section').style.display = 'none';
+        document.getElementById('report-section').style.display = 'block';
+        document.getElementById('r-date').innerText = new Date().toLocaleDateString('ar-IQ');
+
+        const tbody = document.querySelector("#report-tbl tbody");
+        tbody.innerHTML = "";
+
+        if(reportData.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='6'>لا توجد بيانات مدخلة.</td></tr>";
+            return;
+        }
+
+        reportData.forEach((item, idx) => {
+            const tr = `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${item.code}</td>
+                    <td style="direction:ltr; text-align:left;">${item.name}</td>
+                    <td>${item.planned.toLocaleString('en-US')}</td>
+                    <td>${item.received.toLocaleString('en-US')}</td>
+                    <td style="font-weight:bold; color: ${item.percent < 50 ? 'red' : 'green'}">${item.percent}%</td>
+                </tr>
+            `;
+            tbody.innerHTML += tr;
+        });
+    }
+</script>
+
 </body>
 </html>
