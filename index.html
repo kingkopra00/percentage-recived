@@ -89,11 +89,87 @@
         /* بطاقة المادة (Wizard) */
         #wizard-section { display: none; }
         
+        /* شريط البحث والاقتراحات */
+        .search-container {
+            position: relative;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .search-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .suggestions-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #cbd5e0;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .suggestion-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            text-align: left;
+            direction: ltr;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background-color: #ebf8ff; }
+
+        .suggestion-code {
+            font-size: 0.85em;
+            color: #718096;
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .suggestion-name {
+            font-weight: bold;
+            color: #2d3748;
+            flex: 1;
+            font-size: 0.9em;
+        }
+
         .progress-container {
             height: 8px;
             background: #e2e8f0;
             border-radius: 4px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             overflow: hidden;
         }
         .progress-bar {
@@ -144,7 +220,7 @@
         .box-name {
             flex: 2;
             background-color: #f8fafc;
-            overflow: hidden; /* لمنع النص من الخروج */
+            overflow: hidden; 
         }
 
         .box-planned {
@@ -167,19 +243,18 @@
 
         .planned-text { 
             color: var(--highlight-text); 
-            font-size: 1.8em; /* حجم كبير وثابت للاحتياج */
+            font-size: 1.8em; 
         }
         
         .name-text { 
             color: #2d3748; 
             direction: ltr; 
-            /* حجم الخط هنا سيتم تحديده ديناميكياً عبر الجافاسكربت */
             font-size: 1.3em; 
             word-break: break-word;
         }
 
         .input-group { margin-top: 20px; text-align: center; }
-        input[type="text"] {
+        input[type="text"].qty-input {
             width: 100%;
             padding: 15px;
             font-size: 20px;
@@ -190,7 +265,7 @@
             text-align: center;
             color: var(--primary);
         }
-        input[type="text"]:focus {
+        input[type="text"].qty-input:focus {
             border-color: var(--accent);
             outline: none;
             background-color: #fff;
@@ -262,6 +337,13 @@
     </div>
 
     <div id="wizard-section">
+        
+        <div class="search-container">
+            <input type="text" id="search-input" class="search-input" placeholder="ابحث باسم المادة أو الرمز..." onkeypress="checkSearchEnter(event)">
+            <button class="search-btn" onclick="searchItem()">بحث 🔍</button>
+            <div id="suggestions-list" class="suggestions-list"></div>
+        </div>
+
         <div class="progress-container">
             <div id="progress-bar" class="progress-bar"></div>
         </div>
@@ -276,7 +358,7 @@
 
             <div class="info-container">
                 <div class="info-box box-name">
-                    <div class="data-label">اسم المادة (ENG)</div>
+                    <div class="data-label">اسم المادة</div>
                     <div class="data-value name-text" id="disp-name">--</div>
                 </div>
 
@@ -290,13 +372,13 @@
                 <label style="display:block; margin-bottom:10px; font-weight:bold; color:#4a5568;">
                     الكمية المستلمة فعلياً (الرصيد):
                 </label>
-                <input type="text" id="input-qty" placeholder="أدخل الرقم هنا" onkeypress="checkEnter(event)">
+                <input type="text" id="input-qty" class="qty-input" placeholder="أدخل الرقم هنا" onkeypress="checkEnter(event)">
             </div>
 
             <div class="btn-container">
-                <button class="btn-back" onclick="prevItem()" id="btn-back" title="رجوع للمادة السابقة">⬅️ رجوع</button>
-                <button class="btn-skip" onclick="skipItem()" title="تجاهل المادة">تجاوز ⏭️</button>
-                <button class="btn-next" onclick="saveItem()" title="حفظ وانتقال">حفظ وانتقال ✅</button>
+                <button class="btn-back" onclick="prevItem()" id="btn-back">⬅️ رجوع</button>
+                <button class="btn-skip" onclick="skipItem()">تجاوز ⏭️</button>
+                <button class="btn-next" onclick="saveItem()">حفظ وانتقال ✅</button>
             </div>
         </div>
         
@@ -334,15 +416,12 @@
     let reportData = [];
     let currentIndex = 0;
 
-    // دالة لاستخراج النص الانكليزي فقط وتنظيفه
     function filterEnglishText(text) {
         if (!text) return "";
-        // استبدال أي حرف عربي بمسافة فارغة
-        // النطاق \u0600-\u06FF يغطي الحروف العربية والتشكيل
         let englishOnly = text.replace(/[\u0600-\u06FF]/g, "").trim();
-        // إزالة الفراغات الزائدة المتكررة
         englishOnly = englishOnly.replace(/\s+/g, " ");
-        // إزالة الرموز الزائدة في البداية والنهاية إن وجدت
+        // إذا قام الفلتر بحذف كل شيء (لأن الاسم مختلط أو يحتوي رموز فقط)، أعد الاسم الأصلي
+        if (englishOnly.length < 2) return text;
         return englishOnly;
     }
 
@@ -416,9 +495,11 @@
 
             let codeIndex = -1;
             let codeVal = "";
+            
             for(let c=0; c < Math.min(row.length, 5); c++) {
                 let cell = (row[c] || "").toString().trim();
-                if(/^[0-9A-Z]{2,3}-[A-Z0-9]{3}-[A-Z0-9]{3}/.test(cell)) {
+                // تم تعديل التعبير النمطي ليشمل الأحرف الصغيرة (Flag 'i' added)
+                if(/^[0-9a-z]{2,3}-[a-z0-9]{3}-[a-z0-9]{3}/i.test(cell)) {
                     codeIndex = c;
                     codeVal = cell;
                     break;
@@ -426,12 +507,26 @@
             }
 
             if(codeIndex !== -1) {
-                let rawName = (row[codeIndex + 1] || "").toString();
-                // هنا يتم تطبيق فلترة اللغة العربية
-                let nameVal = filterEnglishText(rawName);
-                if(nameVal === "") nameVal = rawName; // في حال كان الاسم كله عربي نبقيه كما هو
+                // البحث الذكي عن الاسم في الأعمدة الـ 3 المجاورة
+                let rawName = "";
+                // نجرب العمود التالي، ثم الذي يليه...
+                for (let k = 1; k <= 3; k++) {
+                    if (row[codeIndex + k]) {
+                        let potentialName = row[codeIndex + k].toString().trim();
+                        // نتأكد أنه ليس فارغاً وطوله معقول ليكون اسماً
+                        if (potentialName.length > 2) {
+                            rawName = potentialName;
+                            break; // وجدنا الاسم، نتوقف عن البحث
+                        }
+                    }
+                }
+                
+                // تنظيف الاسم للعرض
+                let cleanName = filterEnglishText(rawName);
+                if (!cleanName || cleanName.trim() === "") cleanName = rawName; // في حال فشل الفلتر، اعرض الاسم الخام
 
                 let plannedVal = 0;
+                // البحث عن الكمية من اليمين
                 for(let j = row.length - 1; j > codeIndex; j--) {
                     let cell = row[j];
                     if(cell !== undefined && cell !== null && cell !== "") {
@@ -442,14 +537,20 @@
                         }
                     }
                 }
-                allItems.push({ code: codeVal, name: nameVal, planned: plannedVal });
+                
+                allItems.push({ 
+                    code: codeVal, 
+                    rawName: rawName,
+                    displayName: cleanName,
+                    planned: plannedVal 
+                });
             }
         }
 
         if(allItems.length > 0) {
             startApp();
         } else {
-            alert("لا توجد بيانات صالحة.");
+            alert("لا توجد بيانات صالحة. تأكد من أن الملف يحتوي على الرموز الوطنية بشكل صحيح.");
         }
     }
 
@@ -472,15 +573,13 @@
         document.getElementById('disp-code').innerText = item.code;
         
         const nameEl = document.getElementById('disp-name');
-        nameEl.innerText = item.name;
+        nameEl.innerText = item.displayName; 
 
-        // ** ميزة تصغير الخط التلقائي **
-        // إعادة الحجم للافتراضي أولاً
+        // Auto-shrink font logic
         nameEl.style.fontSize = "1.3em";
-        // إذا كان الاسم طويلاً (أكثر من 40 حرف)، صغر الخط
-        if (item.name.length > 80) {
+        if (item.displayName.length > 80) {
             nameEl.style.fontSize = "0.9em";
-        } else if (item.name.length > 40) {
+        } else if (item.displayName.length > 40) {
             nameEl.style.fontSize = "1.1em";
         }
 
@@ -489,15 +588,101 @@
         document.getElementById('btn-back').disabled = (currentIndex === 0);
         document.getElementById('btn-back').style.opacity = (currentIndex === 0) ? "0.5" : "1";
 
-        if (!preserveInput) {
-            const input = document.getElementById('input-qty');
+        const input = document.getElementById('input-qty');
+        
+        const existingEntry = reportData.find(r => r.code === item.code);
+        if (existingEntry) {
+            input.value = existingEntry.received;
+        } else if (!preserveInput) {
             input.value = '';
+        }
+
+        if (document.activeElement.id !== 'search-input') {
             input.focus();
         }
 
         const pct = ((currentIndex) / allItems.length) * 100;
         document.getElementById('progress-bar').style.width = pct + "%";
     }
+
+    // --- Search Logic ---
+    const searchInput = document.getElementById('search-input');
+    const suggestionsList = document.getElementById('suggestions-list');
+
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        suggestionsList.innerHTML = '';
+
+        if (query.length < 4) {
+            suggestionsList.style.display = 'none';
+            return;
+        }
+
+        const matches = allItems.filter(item => 
+            (item.rawName && item.rawName.toLowerCase().includes(query)) || 
+            (item.code && item.code.toLowerCase().includes(query))
+        );
+
+        if (matches.length > 0) {
+            matches.slice(0, 15).forEach(item => { 
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerHTML = `
+                    <span class="suggestion-name">${item.displayName}</span>
+                    <span class="suggestion-code">${item.code}</span>
+                `;
+                div.onclick = function() {
+                    const originalIndex = allItems.indexOf(item);
+                    if (originalIndex !== -1) {
+                        currentIndex = originalIndex;
+                        loadItem(false);
+                        suggestionsList.style.display = 'none';
+                        searchInput.value = '';
+                    }
+                };
+                suggestionsList.appendChild(div);
+            });
+            suggestionsList.style.display = 'block';
+        } else {
+            suggestionsList.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.search-container')) {
+            suggestionsList.style.display = 'none';
+        }
+    });
+
+    function searchItem() {
+        const query = searchInput.value.toLowerCase().trim();
+        if (!query) return;
+
+        const foundIndex = allItems.findIndex(item => 
+            (item.rawName && item.rawName.toLowerCase().includes(query)) || 
+            (item.code && item.code.toLowerCase().includes(query))
+        );
+
+        if (foundIndex !== -1) {
+            currentIndex = foundIndex;
+            loadItem(false);
+            suggestionsList.style.display = 'none';
+            searchInput.value = '';
+        } else {
+            alert("المادة غير موجودة!");
+        }
+    }
+
+    function checkSearchEnter(e) {
+        if (e.key === "Enter") {
+            if (suggestionsList.style.display === 'block' && suggestionsList.firstChild) {
+                suggestionsList.firstChild.click();
+            } else {
+                searchItem();
+            }
+        }
+    }
+    // ----------------------
 
     function saveItem() {
         const input = document.getElementById('input-qty');
@@ -545,15 +730,6 @@
         if (currentIndex > 0) {
             currentIndex--;
             loadItem(true);
-            const itemCode = allItems[currentIndex].code;
-            const savedItem = reportData.find(r => r.code === itemCode);
-            const input = document.getElementById('input-qty');
-            if (savedItem) {
-                input.value = savedItem.received;
-            } else {
-                input.value = '';
-            }
-            input.focus();
         }
     }
 
@@ -579,7 +755,7 @@
                 <tr>
                     <td>${idx + 1}</td>
                     <td>${item.code}</td>
-                    <td style="direction:ltr; text-align:left;">${item.name}</td>
+                    <td style="direction:ltr; text-align:left;">${item.displayName}</td>
                     <td>${item.planned.toLocaleString('en-US')}</td>
                     <td>${item.received.toLocaleString('en-US')}</td>
                     <td style="font-weight:bold; color: ${item.percent < 50 ? 'red' : 'green'}">${item.percent}%</td>
